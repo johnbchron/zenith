@@ -5,16 +5,16 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Write;
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::i2c::{self, Config};
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler as USBInterruptHandler};
-use embedded_graphics::{
-  image::{Image, ImageRaw},
-  pixelcolor::BinaryColor,
-  prelude::*,
-};
+use embedded_graphics::mono_font::ascii::FONT_6X12;
+use embedded_graphics::mono_font::MonoTextStyle;
+use embedded_graphics::text::Text;
+use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 use {defmt_rtt as _, panic_probe as _};
 
@@ -44,11 +44,27 @@ async fn main(spawner: Spawner) {
       .into_buffered_graphics_mode();
   display.init().unwrap();
 
-  let raw: ImageRaw<BinaryColor> =
-    ImageRaw::new(include_bytes!("../assets/rust.raw"), 64);
+  let startup = embassy_time::Instant::now();
 
-  let im = Image::new(&raw, Point::new(32, 0));
-  im.draw(&mut display).unwrap();
+  loop {
+    display.clear_buffer();
 
-  display.flush().unwrap();
+    let now = embassy_time::Instant::now();
+    let elapsed = now - startup;
+
+    // write the elapsed time to a string
+    let mut string = heapless::String::<32>::new();
+    write!(string, "uptime: {:?}", elapsed.as_millis() as f32 / 1000.0)
+      .unwrap();
+
+    Text::new(
+      &string,
+      Point::new(4, 12),
+      MonoTextStyle::new(&FONT_6X12, BinaryColor::On),
+    )
+    .draw(&mut display)
+    .unwrap();
+
+    display.flush().unwrap();
+  }
 }

@@ -25,6 +25,7 @@ portable-atomic = { version = "1.5", features = ["critical-section"] }
 log = "0.4.20"
 ssd1306 = "0.8.4"
 embedded-graphics = { version = "0.8.1", features = ["defmt"] }
+heapless = "0.8.0"
 
 [patch.crates-io]
 embassy-executor = { git = "https://github.com/embassy-rs/embassy" }
