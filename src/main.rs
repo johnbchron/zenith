@@ -11,28 +11,49 @@ use embassy_rp::i2c::{self, Config, InterruptHandler as I2CInterruptHandler};
 use embassy_rp::peripherals::I2C1;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler as USBInterruptHandler};
+use embassy_time::Timer;
+use embedded_graphics::mono_font::ascii::FONT_6X10;
+use embedded_graphics::mono_font::MonoTextStyleBuilder;
+use embedded_graphics::text::{Baseline, Text};
+use embedded_graphics::{
+  image::{Image, ImageRaw},
+  pixelcolor::BinaryColor,
+  prelude::*,
+};
+use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
-    I2C1_IRQ => I2CInterruptHandler<I2C1>;
-    USBCTRL_IRQ => USBInterruptHandler<USB>;
+  USBCTRL_IRQ => USBInterruptHandler<USB>;
 });
 
 #[embassy_executor::task]
 async fn logger_task(driver: Driver<'static, USB>) {
-    embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver);
+  embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver);
 }
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_rp::init(Default::default());
-    let driver = Driver::new(p.USB, Irqs);
+  let p = embassy_rp::init(Default::default());
+  let driver = Driver::new(p.USB, Irqs);
 
-    spawner.spawn(logger_task(driver)).unwrap();
+  spawner.spawn(logger_task(driver)).unwrap();
 
-    let sda = p.PIN_14;
-    let scl = p.PIN_15;
+  let sda = p.PIN_14;
+  let scl = p.PIN_15;
 
-    let mut i2c = i2c::I2c::new_async(p.I2C1, scl, sda, Irqs, Config::default());
-    log::info!("set up i2c");
+  let i2c = i2c::I2c::new_blocking(p.I2C1, scl, sda, Config::default());
+  let interface = I2CDisplayInterface::new(i2c);
+  let mut display =
+    Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
+      .into_buffered_graphics_mode();
+  display.init().unwrap();
+
+  let raw: ImageRaw<BinaryColor> =
+    ImageRaw::new(include_bytes!("../assets/rust.raw"), 64);
+
+  let im = Image::new(&raw, Point::new(32, 0));
+  im.draw(&mut display).unwrap();
+
+  display.flush().unwrap();
 }
