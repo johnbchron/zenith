@@ -7,14 +7,9 @@
 
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
-use embassy_rp::i2c::{self, Config, InterruptHandler as I2CInterruptHandler};
-use embassy_rp::peripherals::I2C1;
+use embassy_rp::i2c::{self, Config};
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler as USBInterruptHandler};
-use embassy_time::Timer;
-use embedded_graphics::mono_font::ascii::FONT_6X10;
-use embedded_graphics::mono_font::MonoTextStyleBuilder;
-use embedded_graphics::text::{Baseline, Text};
 use embedded_graphics::{
   image::{Image, ImageRaw},
   pixelcolor::BinaryColor,
